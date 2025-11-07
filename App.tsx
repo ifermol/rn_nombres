@@ -1,8 +1,8 @@
 import { Alert, FlatList, Pressable, StyleSheet, Text, TextInput, View } from 'react-native'
 import React, { useState } from 'react'
 import { consultarProbabilidades } from './helpers/ConsultasApi'
-import ItemPaisProbabilidad, { ItemProps } from './components/itemPaisProbabilidad'
 import { Probabilidad } from './data/Tipos'
+import ItemPaisProbabilidad from './components/itemPaisProbabilidad'
 
 
 export default function App() {
