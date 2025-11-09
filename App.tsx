@@ -1,10 +1,14 @@
 import { Alert, FlatList, Pressable, StyleSheet, Text, TextInput, View } from 'react-native'
-import React, { ReactNode, useState } from 'react'
-import { consultarProbabilidades } from './helpers/ConsultasApi'
+import React, { ReactNode, useEffect, useState } from 'react'
+import { consultarProbabilidades, consultarProbabilidadesApi } from './helpers/ConsultasApi'
 import { Probabilidad } from './data/Tipos'
 import BienvenidaLayer from './components/layers/BienvenidaLayer'
 import CargaLayer from './components/layers/CargaLayer'
 import ResultadoLayer from './components/layers/ResultadoLayer'
+import BotonModo from './components/BotonModo'
+import InformacionNombres from './components/InformacionNombres'
+import {  getNumeroNombresOffline } from './helpers/ConsultaAlmacenamiento'
+import { borrarNombresOffline } from './helpers/ConsultarAlmacenamientoInterno'
 
 
 export default function App() {
@@ -14,6 +18,29 @@ export default function App() {
   const [nombre, setNombre] = useState("")
   const [listaProbabilidades, setListaProbabilidades] = useState<Array<Probabilidad>>([])
   const [capaActiva, setCapaActiva] = useState(1)
+  const [onLine, setOnLine] = useState(false)
+  const [totalNombresOnline, setTotalNombresOnline] = useState(0)
+  const [usarCache, setUsarCache] = useState(true)
+
+  useEffect( () => {actualizarNumeroNombres()} , [listaProbabilidades])
+
+  function borrarNombres(){
+    Alert.alert(
+      "¿Desea borrar todos los datos",
+      "Los datos eliminados no pueden ser recuperados",
+      [
+        {text:"Aceptar", onPress: () => {
+                                         borrarNombresOffline(),
+                                         setListaProbabilidades([])
+                                        }},
+        {text: "Cancelar"}
+      ]
+    )
+  }
+  async function actualizarNumeroNombres(){
+    const nombres = await getNumeroNombresOffline()
+    setTotalNombresOnline(nombres)
+  }
 
   function getCapaActiva():ReactNode{
     return capaActiva == 1 ? <BienvenidaLayer/> :
@@ -25,7 +52,7 @@ export default function App() {
 
     if(validarNombre()){
       setCapaActiva(2)
-      consultarProbabilidades(nombre)
+      consultarProbabilidades(nombre, onLine, usarCache)
         .then( respuesta => {
           setListaProbabilidades(respuesta)
           setCapaActiva(3)
@@ -33,6 +60,7 @@ export default function App() {
         .catch( error => {
           Alert.alert("Error", error.toString())
           setCapaActiva(1)
+          setOnLine(false)
 
         })
     }else {
@@ -58,6 +86,12 @@ export default function App() {
           getCapaActiva()
         }
       </View>
+      <View style={styles.botonesFondo}>
+        <BotonModo texto={"Online"} activado={onLine} setActivado={setOnLine}/>
+        <BotonModo texto={"cache"} activado={usarCache} setActivado={setUsarCache}/>
+        <InformacionNombres totalNombresOnline={totalNombresOnline} onPress={() => borrarNombres()}/>
+      </View>
+    
     </View>
   )
 }
@@ -110,5 +144,11 @@ const styles = StyleSheet.create({
   },
   contenedorCapas:{
     flex:1
+  },
+  botonesFondo: {
+    flexDirection:"row",
+    justifyContent:"space-between",
+    alignItems:"center",
+    paddingRight:20,
   }
 })
