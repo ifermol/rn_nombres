@@ -1,8 +1,10 @@
 import { Alert, FlatList, Pressable, StyleSheet, Text, TextInput, View } from 'react-native'
-import React, { useState } from 'react'
+import React, { ReactNode, useState } from 'react'
 import { consultarProbabilidades } from './helpers/ConsultasApi'
 import { Probabilidad } from './data/Tipos'
-import ItemPaisProbabilidad from './components/itemPaisProbabilidad'
+import BienvenidaLayer from './components/layers/BienvenidaLayer'
+import CargaLayer from './components/layers/CargaLayer'
+import ResultadoLayer from './components/layers/ResultadoLayer'
 
 
 export default function App() {
@@ -11,14 +13,28 @@ export default function App() {
 
   const [nombre, setNombre] = useState("")
   const [listaProbabilidades, setListaProbabilidades] = useState<Array<Probabilidad>>([])
+  const [capaActiva, setCapaActiva] = useState(1)
 
-
+  function getCapaActiva():ReactNode{
+    return capaActiva == 1 ? <BienvenidaLayer/> :
+           capaActiva == 2 ? <CargaLayer/> :
+           capaActiva == 3 ? <ResultadoLayer listaProbabilidades={listaProbabilidades}/> :
+           <View/>
+  }
   function botonPulsado(){
 
     if(validarNombre()){
-    consultarProbabilidades(nombre)
-        .then( respuesta => setListaProbabilidades(respuesta))
-        .catch( error => Alert.alert("Error", error.toString()))
+      setCapaActiva(2)
+      consultarProbabilidades(nombre)
+        .then( respuesta => {
+          setListaProbabilidades(respuesta)
+          setCapaActiva(3)
+        })
+        .catch( error => {
+          Alert.alert("Error", error.toString())
+          setCapaActiva(1)
+
+        })
     }else {
       Alert.alert("Error", "El nombre no puede dejarse vacío")
     }
@@ -32,17 +48,16 @@ export default function App() {
   return (
     <View style={styles.contenedorPrincipal}>
       <View style={styles.fila}>
-      <TextInput style={styles.cuadroTexto} value={nombre} onChangeText={setNombre}/>
-      <Pressable style={({pressed}) => pressed? styles.botonPresionado : styles.boton} onPress={() =>botonPulsado()}>
+      <TextInput style={styles.cuadroTexto} value={nombre} onChangeText={setNombre} editable={capaActiva !== 2}/>
+      <Pressable style={({pressed}) => pressed? styles.botonPresionado : styles.boton} onPress={() =>botonPulsado()} disabled={capaActiva === 2}>
         <Text style={styles.textoBoton}>Consultar</Text>
       </Pressable>
       </View>
-      <FlatList
-        data={listaProbabilidades}
-        renderItem={ItemPaisProbabilidad}
-        keyExtractor={ (item) => item.country_id}
-        ListEmptyComponent={ () => <Text style={{margin:"auto"}}>No se han encontrado resultados</Text>}
-      />
+      <View style={styles.contenedorCapas}>
+        {
+          getCapaActiva()
+        }
+      </View>
     </View>
   )
 }
@@ -93,4 +108,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "600",
   },
+  contenedorCapas:{
+    flex:1
+  }
 })
